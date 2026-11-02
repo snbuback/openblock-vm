@@ -1832,12 +1832,13 @@ class Runtime extends EventEmitter {
      * @param {string} deviceId - the id of the device.
      * @param {number} peripheralId - the id of the peripheral.
      * @param {number} baudrate - the baudrate.
+     * @param {object} peripheralConfig - transport configuration (WebREPL password etc.).
      */
-    connectPeripheral (deviceId, peripheralId, baudrate) {
+    connectPeripheral (deviceId, peripheralId, baudrate, peripheralConfig) {
         deviceId = this.analysisRealDeviceId(deviceId);
 
         if (this.peripheralExtensions[deviceId]) {
-            this.peripheralExtensions[deviceId].connect(peripheralId, baudrate);
+            this.peripheralExtensions[deviceId].connect(peripheralId, baudrate, peripheralConfig);
         }
     }
 

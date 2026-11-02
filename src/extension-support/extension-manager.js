@@ -48,6 +48,9 @@ const builtinDevices = {
     arduinoEsp32: () => require('../devices/arduinoEsp32/arduinoEsp32'),
     // Esp32-S3
     arduinoEsp32S3: () => require('../devices/arduinoEsp32S3/arduinoEsp32S3'),
+    // MicroPython Esp32 / Esp32-S3 (WebREPL)
+    microPythonEsp32: () => require('../devices/microPythonEsp32/microPythonEsp32'),
+    microPythonEsp32S3: () => require('../devices/microPythonEsp32S3/microPythonEsp32S3'),
     // Esp8266
     arduinoEsp8266: () => require('../devices/arduinoEsp8266/arduinoEsp8266'),
     arduinoEsp8266NodeMCU: () => require('../devices/arduinoEsp8266/arduinoEsp8266NodeMCU'),

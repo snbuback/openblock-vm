@@ -312,9 +312,10 @@ class VirtualMachine extends EventEmitter {
      * @param {string} extensionId - the id of the extension.
      * @param {number} peripheralId - the id of the peripheral.
      * @param {number} baudrate - the baudrate.
+     * @param {object} peripheralConfig - transport configuration (WebREPL password etc.).
      */
-    connectPeripheral (extensionId, peripheralId, baudrate) {
-        this.runtime.connectPeripheral(extensionId, peripheralId, baudrate);
+    connectPeripheral (extensionId, peripheralId, baudrate, peripheralConfig) {
+        this.runtime.connectPeripheral(extensionId, peripheralId, baudrate, peripheralConfig);
     }
 
     /**
