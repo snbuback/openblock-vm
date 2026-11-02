@@ -188,11 +188,7 @@ class Webrepl extends JSONRPC {
      * @return {Promise<string>} - command stdout.
      */
     execLive (command, timeout, options = {}) {
-        return this.sendRemoteRequest('execLive', {command, timeout, options})
-            .catch(e => {
-                this.handleDisconnectError(e);
-                throw e;
-            });
+        return this.sendRemoteRequest('execLive', {command, timeout, options});
     }
 
     /**
