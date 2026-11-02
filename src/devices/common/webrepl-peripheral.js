@@ -38,6 +38,8 @@ class WebReplPeripheral {
         this._webrepl = null;
         this._liveObjects = new Set();
         this._livePins = {};
+        this._prologueDone = false;
+        this._prologuePromise = null;
 
         this.reset = this.reset.bind(this);
         this._onConnect = this._onConnect.bind(this);
@@ -102,6 +104,8 @@ class WebReplPeripheral {
     reset () {
         this._liveObjects.clear();
         this._livePins = {};
+        this._prologueDone = false;
+        this._prologuePromise = null;
     }
 
     /**
@@ -123,6 +127,9 @@ class WebReplPeripheral {
      */
     upload (code) {
         if (!this._webrepl) return;
+        // The board is reset after the upload, so board-side objects from a
+        // previous realtime session no longer exist.
+        this.reset();
         const base64Str = Buffer.from(code).toString('base64');
         this._webrepl.upload(base64Str, this.diveceOpt, 'base64');
     }
@@ -196,11 +203,40 @@ class WebReplPeripheral {
      * @param {object} options - execution options.
      * @returns {Promise<string>} - stdout.
      */
-    execLive (command, timeout, options) {
+    async execLive (command, timeout, options) {
         if (!this.isConnected()) {
-            return Promise.reject(new Error('No peripheral is connected.'));
+            throw new Error('No peripheral is connected.');
         }
+        await this._ensurePrologue();
         return this._webrepl.execLive(command, timeout, options);
+    }
+
+    /**
+     * Import the modules used by most realtime blocks once per connection.
+     * @returns {Promise} - resolved when the imports are available.
+     * @private
+     */
+    _ensurePrologue () {
+        if (this._prologueDone) return Promise.resolve();
+        if (!this._prologuePromise) {
+            this._prologuePromise = this._webrepl.execLive(
+                'from machine import Pin, PWM, ADC\nimport time\n'
+            ).then(() => {
+                this._prologueDone = true;
+            })
+                .catch(err => {
+                    this._prologueDone = false;
+                    throw err;
+                })
+                .then(result => {
+                    this._prologuePromise = null;
+                    return result;
+                }, err => {
+                    this._prologuePromise = null;
+                    throw err;
+                });
+        }
+        return this._prologuePromise;
     }
 
     /**
