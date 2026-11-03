@@ -19,7 +19,7 @@ class Webrepl extends JSONRPC {
 
         this._socket = runtime.getScratchLinkSocket('WEBREPL');
         this._socket.setOnOpen(this.requestPeripheral.bind(this));
-        this._socket.setOnClose(this.handleDisconnectError.bind(this));
+        this._socket.setOnClose(this._handleSocketClose.bind(this));
         this._socket.setOnError(this._handleRequestError.bind(this));
         this._socket.setHandleMessage(this._handleMessage.bind(this));
 
@@ -34,6 +34,8 @@ class Webrepl extends JSONRPC {
         this._deviceId = deviceId;
         this._peripheralOptions = peripheralOptions;
         this._runtime = runtime;
+        this._socketOpen = false;
+        this._pendingConnect = null;
 
         this._socket.open();
     }
@@ -44,6 +46,7 @@ class Webrepl extends JSONRPC {
      * Link session.
      */
     requestPeripheral () {
+        this._socketOpen = true;
         this._availablePeripherals = {};
         if (this._discoverTimeoutID) {
             window.clearTimeout(this._discoverTimeoutID);
@@ -53,14 +56,31 @@ class Webrepl extends JSONRPC {
             .catch(e => {
                 this._handleRequestError(e);
             });
+        if (this._pendingConnect) {
+            const pending = this._pendingConnect;
+            this._pendingConnect = null;
+            this.connectPeripheral(pending.id, pending.config);
+        }
     }
 
     /**
-     * Try connecting to the given WebREPL endpoint.
+     * @returns {boolean} - whether the Link WebSocket is open.
+     */
+    isSocketOpen () {
+        return this._socketOpen && this._socket && this._socket.isOpen();
+    }
+
+    /**
+     * Try connecting to the given WebREPL endpoint. If the Link socket is
+     * still opening, the request is queued until the open event arrives.
      * @param {string} id - "host:port".
      * @param {object} config - {host, port, password} connection configuration.
      */
     connectPeripheral (id, config) {
+        if (!this.isSocketOpen()) {
+            this._pendingConnect = {id, config};
+            return;
+        }
         this.sendRemoteRequest('connect', {peripheralId: id, peripheralConfig: config})
             .then(() => {
                 this._connected = true;
@@ -81,6 +101,9 @@ class Webrepl extends JSONRPC {
         if (this._connected) {
             this._connected = false;
         }
+
+        this._socketOpen = false;
+        this._pendingConnect = null;
 
         if (this._socket.isOpen()) {
             this._socket.close();
@@ -245,6 +268,17 @@ class Webrepl extends JSONRPC {
         case 'ping':
             return 42;
         }
+    }
+
+    /**
+     * The Link WebSocket closed. Update the socket state and report the
+     * peripheral loss if a device was connected.
+     * @private
+     */
+    _handleSocketClose () {
+        this._socketOpen = false;
+        this._pendingConnect = null;
+        this.handleDisconnectError();
     }
 
     /**

@@ -79,11 +79,12 @@ class WebReplPeripheral {
      * @param {object} config - {host, port, password}.
      */
     connect (id, _baudrate, config = null) {
-        if (!this._webrepl || !this._webrepl.isConnected()) {
+        if (!this._webrepl || !this._webrepl.isSocketOpen()) {
             // The Link session may have been closed by a cancelled attempt.
             this._createSocket();
         }
         if (this._webrepl) {
+            // connectPeripheral queues until the new socket has opened.
             this._webrepl.connectPeripheral(id, config || {});
         }
     }
